@@ -22,10 +22,38 @@ namespace WpfApp1.ViewModels
         public ObservableCollection<SymbolViewModel> PEOnly { get; } = new();
 
         private readonly OptionTickEventArgs _engine;
+        private ZeroMqOptionFeed _zmq;
+
+        private void OnTick(object sender, OptionTickEventArgs e)
+        {
+            var vm =
+                CEOnly.FirstOrDefault(s => s.Data.Symbol == e.Symbol) ??
+                PEOnly.FirstOrDefault(s => s.Data.Symbol == e.Symbol);
+
+            if (vm == null)
+                return;
+
+            vm.Data.Open = e.Open;
+            vm.Data.High = e.High;
+            vm.Data.Low = e.Low;
+            vm.Data.Ltp = e.Ltp;
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                vm.PushToChart();
+            });
+        }
 
         public MainViewModel()
         {
             LoadOptions();
+
+            // 👇 CONNECT ZMQ HERE
+            _zmq = new ZeroMqOptionFeed("tcp://127.0.0.1:7777");
+            _zmq.TickReceived += OnTick;
+
+            // Start live feed
+            _zmq.Start();
 
 
             StartDummyTicks();

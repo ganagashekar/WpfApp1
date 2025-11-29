@@ -38,9 +38,9 @@
                         <DataTemplate>
                             <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Data.Symbol}"
+                                    <!--<TextBlock Text="{Binding Data.Ltp}"
                                                Foreground="White"
-                                               HorizontalAlignment="Center"/>
+                                               HorizontalAlignment="Center"/>-->
 
                                     <ContentPresenter Content="{Binding Chart}" />
                                 </StackPanel>
@@ -69,9 +69,9 @@
                         <DataTemplate>
                             <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Data.Symbol}"
+                                    <!--<TextBlock Text="{Binding Data.Symbol}"
                                                Foreground="White"
-                                               HorizontalAlignment="Center"/>
+                                               HorizontalAlignment="Center"/>-->
 
                                     <ContentPresenter Content="{Binding Chart}" />
                                 </StackPanel>
