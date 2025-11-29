@@ -2,13 +2,16 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fc="clr-namespace:WpfApp1"
-        Title="150 Charts" Width="1600" Height="900">
+        Title="150 Live Charts"
+        Width="1600" Height="900"
+        Background="#111">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <WrapPanel x:Name="ChartsPanel"
                    Orientation="Horizontal"
                    Margin="10"
-                   ItemWidth="200" 
+                   ItemWidth="200"
                    ItemHeight="50"/>
     </ScrollViewer>
+
 </Window>

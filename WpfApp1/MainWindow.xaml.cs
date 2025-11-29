@@ -13,11 +13,11 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
-            LoadAllCharts();
-            StartRealtimeAllChartUpdater();
+            CreateCharts();
+            StartFeed();
         }
 
-        private void LoadAllCharts()
+        private void CreateCharts()
         {
             for (int i = 0; i < 150; i++)
             {
@@ -25,13 +25,11 @@ namespace WpfApp1
                 {
                     Width = 200,
                     Height = 50,
-                    Margin = new Thickness(5),
-                    Background = Brushes.Black,
+                    Margin = new Thickness(6),
+                    //#Background = Brushes.Black,
                     Stroke = Brushes.Lime,
-                    Fill = new SolidColorBrush(Color.FromArgb(60, 0, 255, 0)),
-                    Smooth = false,
-                    UseGradientFill = false,
-                    ShowGrid = false
+                    Fill = new SolidColorBrush(Color.FromArgb(50, 0, 255, 0)),
+                    Smooth = false
                 };
 
                 charts[i] = c;
@@ -39,35 +37,42 @@ namespace WpfApp1
             }
         }
 
-        private void StartRealtimeAllChartUpdater()
+        private void StartFeed()
         {
             Task.Run(() =>
             {
                 Random r = new Random();
-                double[] prices = new double[150];
 
-                // initial values
+                double[] open = new double[150];
+                double[] high = new double[150];
+                double[] low = new double[150];
+                double[] ltp = new double[150];
+
+                // initialize OHLC
                 for (int i = 0; i < 150; i++)
-                    prices[i] = r.Next(80, 120);
+                {
+                    open[i] = r.Next(100, 200);
+                    high[i] = low[i] = ltp[i] = open[i];
+                }
 
                 while (true)
                 {
-                    // update all 150 prices
                     for (int i = 0; i < 150; i++)
                     {
-                        prices[i] += (r.NextDouble() - 0.5) * 2; // random walk
+                        double change = (r.NextDouble() - 0.5) * 2;
+                        ltp[i] += change;
+
+                        if (ltp[i] > high[i]) high[i] = ltp[i];
+                        if (ltp[i] < low[i]) low[i] = ltp[i];
                     }
 
-                    // push to UI in one batch
                     Dispatcher.Invoke(() =>
                     {
                         for (int i = 0; i < 150; i++)
-                        {
-                            charts[i].Add(prices[i]);
-                        }
+                            charts[i].AddCandle(open[i], high[i], low[i], ltp[i]);
                     });
 
-                    Thread.Sleep(100); // global update speed
+                    Thread.Sleep(100);
                 }
             });
         }
