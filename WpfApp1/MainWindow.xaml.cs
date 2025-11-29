@@ -20,14 +20,14 @@ namespace WpfApp1
             InitializeComponent();
         }
 
-        private void ChartLoaded(object sender, RoutedEventArgs e)
-        {
-            var ui = sender as AdvancedRealtimeChart;
-            var vm = ui.DataContext as SymbolViewModel;
+        //private void ChartLoaded(object sender, RoutedEventArgs e)
+        //{
+        //    var ui = sender as AdvancedRealtimeChart;
+        //    var vm = ui.DataContext as SymbolViewModel;
 
-            ui.CopyFrom(vm.Chart); // sync settings
-            vm.Chart.AttachTo(ui); // optional: mirror target
-        }
+        //    ui.CopyFrom(vm.Chart); // sync settings
+        //    vm.Chart.AttachTo(ui); // optional: mirror target
+        //}
 
     }
 }

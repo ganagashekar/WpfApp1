@@ -13,18 +13,26 @@ using WpfApp1.Models;
 
 namespace WpfApp1.ViewModels
 {
+
+
+
     public partial class MainViewModel : ObservableObject
     {
         public ObservableCollection<SymbolViewModel> CEOnly { get; } = new();
         public ObservableCollection<SymbolViewModel> PEOnly { get; } = new();
 
-        private readonly Random rnd = new();
+        private readonly OptionTickEventArgs _engine;
 
         public MainViewModel()
         {
             LoadOptions();
-            InitDummyPrices();
-            StartDummyFeed();
+
+
+            StartDummyTicks();
+
+            // engine
+            _engine = new OptionTickEventArgs();
+            _engine.OptionTickReceived += OnOptionTickReceived;
         }
 
         private void LoadOptions()
@@ -39,54 +47,63 @@ namespace WpfApp1.ViewModels
             }
         }
 
-        private void InitDummyPrices()
+        private void OnOptionTickReceived(object sender, OptionTickEventArgs e)
         {
-            foreach (var s in CEOnly)
-            {
-                double o = rnd.Next(100, 200);
-                s.Data.Open = o; s.Data.High = o; s.Data.Low = o; s.Data.Ltp = o;
-            }
+            var vm =
+                CEOnly.FirstOrDefault(x => x.Data.Symbol == e.Symbol)
+                ?? PEOnly.FirstOrDefault(x => x.Data.Symbol == e.Symbol);
 
-            foreach (var s in PEOnly)
-            {
-                double o = rnd.Next(100, 200);
-                s.Data.Open = o; s.Data.High = o; s.Data.Low = o; s.Data.Ltp = o;
-            }
+            if (vm == null)
+                return;
+
+            vm.Data.Open = e.Open;
+            vm.Data.High = e.High;
+            vm.Data.Low = e.Low;
+            vm.Data.Ltp = e.Ltp;
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() => vm.PushToChart());
         }
 
-        private void StartDummyFeed()
+        private void StartDummyTicks()
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
+                var rnd = new Random();
+
+                // give initial values
+                foreach (var vm in CEOnly.Concat(PEOnly))
+                {
+                    vm.Data.Open = vm.Data.Ltp = rnd.Next(100, 500);
+                    vm.Data.High = vm.Data.Open;
+                    vm.Data.Low = vm.Data.Open;
+                }
+
                 while (true)
                 {
-                    foreach (var s in CEOnly)
+                    foreach (var vm in CEOnly.Concat(PEOnly))
                     {
-                        double ch = (rnd.NextDouble() - 0.5) * 2;
-                        s.Data.Ltp += ch;
-                        if (s.Data.Ltp > s.Data.High) s.Data.High = s.Data.Ltp;
-                        if (s.Data.Ltp < s.Data.Low) s.Data.Low = s.Data.Ltp;
+                        // random walk
+                        double ch = (rnd.NextDouble() - 0.5) * 4;
+                        vm.Data.Ltp += ch;
+
+                        if (vm.Data.Ltp > vm.Data.High) vm.Data.High = vm.Data.Ltp;
+                        if (vm.Data.Ltp < vm.Data.Low) vm.Data.Low = vm.Data.Ltp;
+
+                        // Call the SAME handler used by real ZMQ
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            vm.PushToChart();
+                        });
                     }
 
-                    foreach (var s in PEOnly)
-                    {
-                        double ch = (rnd.NextDouble() - 0.5) * 2;
-                        s.Data.Ltp += ch;
-                        if (s.Data.Ltp > s.Data.High) s.Data.High = s.Data.Ltp;
-                        if (s.Data.Ltp < s.Data.Low) s.Data.Low = s.Data.Ltp;
-                    }
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        foreach (var s in CEOnly) s.PushToChart();
-                        foreach (var s in PEOnly) s.PushToChart();
-                    });
-
-                    Thread.Sleep(100);
+                    await Task.Delay(50); // update 20 times per second
                 }
             });
         }
+
     }
+
+
 }
 
 
@@ -98,6 +115,7 @@ namespace WpfApp1.ViewModels
 
 namespace WpfApp1.ViewModels
 {
+
     public partial class SymbolViewModel : ObservableObject
     {
         public SymbolData Data { get; }
@@ -109,10 +127,8 @@ namespace WpfApp1.ViewModels
 
             Chart = new AdvancedRealtimeChart
             {
-                Width = 200,
-                Height = 50,
-                Margin = new System.Windows.Thickness(6),
-                Smooth = false
+                Width = 250,
+                Height = 60
             };
         }
 
@@ -122,5 +138,4 @@ namespace WpfApp1.ViewModels
         }
     }
 }
-
 

@@ -5,70 +5,19 @@ using System.Windows.Media;
 
 namespace WpfApp1
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Windows;
+    using System.Windows.Media;
+
+
     public class AdvancedRealtimeChart : FrameworkElement
     {
         private readonly object _sync = new();
         private readonly List<double> _samples = new();
-
         private double _min = double.MaxValue;
         private double _max = double.MinValue;
 
-        // --------------------- Dependency Properties ---------------------
-
-        public static readonly DependencyProperty StrokeProperty =
-            DependencyProperty.Register(nameof(Stroke), typeof(Brush),
-                typeof(AdvancedRealtimeChart),
-                new FrameworkPropertyMetadata(Brushes.Lime,
-                    FrameworkPropertyMetadataOptions.AffectsRender));
-
-        public Brush Stroke
-        {
-            get => (Brush)GetValue(StrokeProperty);
-            set => SetValue(StrokeProperty, value);
-        }
-
-        public static readonly DependencyProperty FillProperty =
-            DependencyProperty.Register(nameof(Fill), typeof(Brush),
-                typeof(AdvancedRealtimeChart),
-                new FrameworkPropertyMetadata(
-                    new SolidColorBrush(Color.FromArgb(60, 0, 255, 0)),
-                    FrameworkPropertyMetadataOptions.AffectsRender));
-
-        public Brush Fill
-        {
-            get => (Brush)GetValue(FillProperty);
-            set => SetValue(FillProperty, value);
-        }
-
-        public static readonly DependencyProperty SmoothProperty =
-            DependencyProperty.Register(nameof(Smooth), typeof(bool),
-                typeof(AdvancedRealtimeChart),
-                new FrameworkPropertyMetadata(false,
-                    FrameworkPropertyMetadataOptions.AffectsRender));
-
-        public bool Smooth
-        {
-            get => (bool)GetValue(SmoothProperty);
-            set => SetValue(SmoothProperty, value);
-        }
-
-
-        // ------------------ PUBLIC API ------------------
-
-        public void Add(double value)
-        {
-            lock (_sync)
-            {
-                _samples.Add(value);    // infinite history
-
-                if (value < _min) _min = value;
-                if (value > _max) _max = value;
-            }
-
-            InvalidateVisual();
-        }
-
-        // OHLC + auto COLOR
         public void AddCandle(double open, double high, double low, double ltp)
         {
             Add(ltp);
@@ -85,8 +34,23 @@ namespace WpfApp1
             }
         }
 
+        public void Add(double v)
+        {
+            lock (_sync)
+            {
+                _samples.Add(v);
+                if (v < _min) _min = v;
+                if (v > _max) _max = v;
+            }
 
-        // ------------------ RENDER ------------------
+            InvalidateVisual();
+        }
+
+        public Brush Stroke { get; set; } = Brushes.Lime;
+        public Brush Fill { get; set; } = new SolidColorBrush(Color.FromArgb(50, 0, 255, 0));
+
+        protected override Size MeasureOverride(Size constraint) => new Size(250, 60);
+        protected override Size ArrangeOverride(Size finalSize) => finalSize;
 
         protected override void OnRender(DrawingContext dc)
         {
@@ -98,12 +62,10 @@ namespace WpfApp1
             double w = ActualWidth;
             double h = ActualHeight;
 
-            if (w <= 0 || h <= 0)
-                return;
-
-            // background
+            // Background
             dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, w, h));
 
+            // Copy samples safely
             List<double> data;
             double min, max;
 
@@ -114,68 +76,56 @@ namespace WpfApp1
                 max = _max;
             }
 
-            if (min == max)
-            {
-                min -= 1;
-                max += 1;
-            }
+            if (min == max) { min -= 1; max += 1; }
 
-            int count = data.Count;
             double range = max - min;
 
-
-            // ------- AREA FILL -------
-            StreamGeometry fillGeo = new StreamGeometry();
-            using (var ctx = fillGeo.Open())
-            {
-                ctx.BeginFigure(ToPoint(0, data[0], w, h, min, range), true, true);
-
-                for (int i = 1; i < count; i++)
-                    ctx.LineTo(ToPoint(i, data[i], w, h, min, range), true, false);
-
-                ctx.LineTo(new Point(w, h), false, false);
-                ctx.LineTo(new Point(0, h), false, false);
-            }
-            fillGeo.Freeze();
-            dc.DrawGeometry(Fill, null, fillGeo);
-
-            // ------- LINE -------
-            StreamGeometry lineGeo = new StreamGeometry();
+            // Geometry for line
+            var lineGeo = new StreamGeometry();
             using (var ctx = lineGeo.Open())
             {
-                ctx.BeginFigure(ToPoint(0, data[0], w, h, min, range), false, false);
-
-                for (int i = 1; i < count; i++)
-                    ctx.LineTo(ToPoint(i, data[i], w, h, min, range), true, false);
+                ctx.BeginFigure(PointAt(0, data[0]), false, false);
+                for (int i = 1; i < data.Count; i++)
+                    ctx.LineTo(PointAt(i, data[i]), true, false);
             }
             lineGeo.Freeze();
 
-            dc.DrawGeometry(null, new Pen(Stroke, 1.3), lineGeo);
+            // Geometry for area fill
+            var fillGeo = new StreamGeometry();
+            using (var ctx = fillGeo.Open())
+            {
+                // Start at first point
+                ctx.BeginFigure(PointAt(0, data[0]), true, true);
+
+                // Draw along line
+                for (int i = 1; i < data.Count; i++)
+                    ctx.LineTo(PointAt(i, data[i]), true, false);
+
+                // Close down to bottom-right
+                ctx.LineTo(new Point(w, h), true, false);
+
+                // close bottom-left
+                ctx.LineTo(new Point(0, h), true, false);
+            }
+            fillGeo.Freeze();
+
+            // Draw area fill
+            dc.DrawGeometry(Fill, null, fillGeo);
+
+            // Draw the line
+            dc.DrawGeometry(null, new Pen(Stroke, 1.2), lineGeo);
+
+
+            // Local helper
+            Point PointAt(int idx, double val)
+            {
+                double x = (double)idx / (data.Count - 1) * w;
+                double y = h - ((val - min) / range) * h;
+                return new Point(x, y);
+            }
         }
 
-        private Point ToPoint(int index, double value, double w, double h, double min, double range)
-        {
-            double x = (double)index / (_samples.Count - 1) * w;
-
-            double yn = (value - min) / range;
-            double y = h - yn * h;
-
-            return new Point(x, y);
-        }
-
-        protected override Size MeasureOverride(Size constraint) => new Size(100, 40);
-        protected override Size ArrangeOverride(Size finalSize) => finalSize;
-
-        public void CopyFrom(AdvancedRealtimeChart src)
-        {
-            this.Stroke = src.Stroke;
-            this.Fill = src.Fill;
-            this.Smooth = src.Smooth;
-            this.Margin = src.Margin;
-        }
-        public void AttachTo(AdvancedRealtimeChart target)
-        {
-            // “target” becomes the visual drawing surface
-        }
     }
+
+
 }

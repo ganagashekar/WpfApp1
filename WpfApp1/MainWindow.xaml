@@ -11,90 +11,73 @@
     </Window.DataContext>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
+
         <Grid Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <!-- CE -->
                 <ColumnDefinition Width="40" />
-                <!-- GAP -->
                 <ColumnDefinition Width="*" />
-                <!-- PE -->
             </Grid.ColumnDefinitions>
 
-            <!-- ================= CE LEFT ================= -->
+            <!-- CE LEFT -->
             <StackPanel Grid.Column="0">
                 <TextBlock Text="CALL OPTIONS (CE)"
                            Foreground="Orange"
                            FontSize="20"
-                           Margin="10"
-                           HorizontalAlignment="Center"/>
+                           HorizontalAlignment="Center"
+                           Margin="10"/>
 
                 <ItemsControl ItemsSource="{Binding CEOnly}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <!-- ⭐ ALWAYS EXACTLY 5 COLUMNS ⭐ -->
                             <UniformGrid Columns="5"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="5"
-                                    Width="250" Height="80"
-                                    BorderBrush="#222" BorderThickness="1">
-
+                            <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Data.Symbol}"
                                                Foreground="White"
                                                HorizontalAlignment="Center"/>
 
-                                    <ContentPresenter Content="{Binding Chart}"
-                                                      HorizontalAlignment="Center"/>
+                                    <ContentPresenter Content="{Binding Chart}" />
                                 </StackPanel>
-
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-
                 </ItemsControl>
             </StackPanel>
 
-
-            <!-- ================= PE RIGHT ================= -->
+            <!-- PE RIGHT -->
             <StackPanel Grid.Column="2">
                 <TextBlock Text="PUT OPTIONS (PE)"
                            Foreground="SkyBlue"
                            FontSize="20"
-                           Margin="10"
-                           HorizontalAlignment="Center"/>
+                           HorizontalAlignment="Center"
+                           Margin="10"/>
 
                 <ItemsControl ItemsSource="{Binding PEOnly}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <!-- ⭐ ALWAYS EXACTLY 5 COLUMNS ⭐ -->
                             <UniformGrid Columns="5"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="5"
-                                    Width="250" Height="80"
-                                    BorderBrush="#222" BorderThickness="1">
-
+                            <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Data.Symbol}"
                                                Foreground="White"
                                                HorizontalAlignment="Center"/>
 
-                                    <ContentPresenter Content="{Binding Chart}"
-                                                      HorizontalAlignment="Center"/>
+                                    <ContentPresenter Content="{Binding Chart}" />
                                 </StackPanel>
-
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-
                 </ItemsControl>
             </StackPanel>
 
