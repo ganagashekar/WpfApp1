@@ -165,5 +165,17 @@ namespace WpfApp1
 
         protected override Size MeasureOverride(Size constraint) => new Size(100, 40);
         protected override Size ArrangeOverride(Size finalSize) => finalSize;
+
+        public void CopyFrom(AdvancedRealtimeChart src)
+        {
+            this.Stroke = src.Stroke;
+            this.Fill = src.Fill;
+            this.Smooth = src.Smooth;
+            this.Margin = src.Margin;
+        }
+        public void AttachTo(AdvancedRealtimeChart target)
+        {
+            // “target” becomes the visual drawing surface
+        }
     }
 }
