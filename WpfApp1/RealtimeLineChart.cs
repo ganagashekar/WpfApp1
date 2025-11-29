@@ -65,58 +65,66 @@ namespace WpfApp1
             // Background
             dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, w, h));
 
-            // Copy samples safely
+            // Snapshot of data
             List<double> data;
             double min, max;
+            double openPrice;
 
             lock (_sync)
             {
                 data = new List<double>(_samples);
                 min = _min;
                 max = _max;
+                openPrice = _samples.Count > 0 ? _samples.First() : 0;  // FIRST LTP = OPEN
             }
 
             if (min == max) { min -= 1; max += 1; }
-
             double range = max - min;
 
-            // Geometry for line
+            // === DRAW DASHED OPEN PRICE LINE ===
+            double openY = h - ((openPrice - min) / range) * h;
+
+            var openPen = new Pen(Brushes.DarkGray, 0.7)
+            {
+                DashStyle = DashStyles.Dash
+            };
+
+            dc.DrawLine(openPen, new Point(0, openY), new Point(w, openY));
+
+
+
+            // === AREA FILL ===
+            var fillGeo = new StreamGeometry();
+            using (var ctx = fillGeo.Open())
+            {
+                ctx.BeginFigure(PointAt(0, data[0]), true, true);
+
+                for (int i = 1; i < data.Count; i++)
+                    ctx.LineTo(PointAt(i, data[i]), true, false);
+
+                ctx.LineTo(new Point(w, h), true, false);
+                ctx.LineTo(new Point(0, h), true, false);
+            }
+            fillGeo.Freeze();
+            dc.DrawGeometry(Fill, null, fillGeo);
+
+
+
+            // === LINE ===
             var lineGeo = new StreamGeometry();
             using (var ctx = lineGeo.Open())
             {
                 ctx.BeginFigure(PointAt(0, data[0]), false, false);
+
                 for (int i = 1; i < data.Count; i++)
                     ctx.LineTo(PointAt(i, data[i]), true, false);
             }
             lineGeo.Freeze();
-
-            // Geometry for area fill
-            var fillGeo = new StreamGeometry();
-            using (var ctx = fillGeo.Open())
-            {
-                // Start at first point
-                ctx.BeginFigure(PointAt(0, data[0]), true, true);
-
-                // Draw along line
-                for (int i = 1; i < data.Count; i++)
-                    ctx.LineTo(PointAt(i, data[i]), true, false);
-
-                // Close down to bottom-right
-                ctx.LineTo(new Point(w, h), true, false);
-
-                // close bottom-left
-                ctx.LineTo(new Point(0, h), true, false);
-            }
-            fillGeo.Freeze();
-
-            // Draw area fill
-            dc.DrawGeometry(Fill, null, fillGeo);
-
-            // Draw the line
-            dc.DrawGeometry(null, new Pen(Stroke, 1.2), lineGeo);
+            dc.DrawGeometry(null, new Pen(Stroke, 1.3), lineGeo);
 
 
-            // Local helper
+
+            // helper
             Point PointAt(int idx, double val)
             {
                 double x = (double)idx / (data.Count - 1) * w;
@@ -124,6 +132,7 @@ namespace WpfApp1
                 return new Point(x, y);
             }
         }
+
 
     }
 
