@@ -147,23 +147,34 @@ namespace WpfApp1.ViewModels
     public partial class SymbolViewModel : ObservableObject
     {
         public SymbolData Data { get; }
-        public AdvancedRealtimeChart Chart { get; }
+        //public AdvancedRealtimeChart Chart { get; }
+        public SkiaMiniChart Chart { get; }
 
         public SymbolViewModel(string symbol)
         {
             Data = new SymbolData { Symbol = symbol };
 
-            Chart = new AdvancedRealtimeChart
+            Chart = new SkiaMiniChart
             {
                 Width = 250,
                 Height = 60
             };
+
+
+            //Chart = new AdvancedRealtimeChart
+            //{
+            //    Width = 250,
+            //    Height = 60
+            //};
         }
 
-        public void PushToChart()
-        {
-            Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
-        }
+        public void PushToChart() => Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
+
+
+        //public void PushToChart()
+        //{
+        //    Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
+        //}
     }
 }
 
