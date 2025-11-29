@@ -2,41 +2,74 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:WpfApp1.ViewModels"
-        Title="Option Dashboard (MVVM)"
+        Title="Option Dashboard"
         Width="1600" Height="900"
-        Background="#111">
+        Background="#000">
 
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <ItemsControl ItemsSource="{Binding Symbols}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+        <StackPanel>
 
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
+            <!-- ====================== CE PANEL ====================== -->
+            <TextBlock Text="CE SYMBOLS"
+                       Foreground="Orange"
+                       FontSize="18"
+                       Margin="10"/>
 
-                    <StackPanel>
-                        <TextBlock Text="{Binding Data.Symbol}"
-                                   Foreground="White"
-                                   FontSize="12"
-                                   Margin="4"
-                                   HorizontalAlignment="Center"/>
+            <ItemsControl ItemsSource="{Binding CEOnly}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
 
-                        <!-- FIX: USE THE REAL CHART FROM THE VIEWMODEL -->
-                        <ContentPresenter Content="{Binding Chart}"/>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Data.Symbol}"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"/>
+                            <ContentPresenter Content="{Binding Chart}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-                    </StackPanel>
 
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
+            <!-- ==================== GAP BETWEEN CE AND PE ==================== -->
+            <Border Height="50"/>
+            <!-- adjust to 100 or 200 as needed -->
 
-        </ItemsControl>
+
+            <!-- ====================== PE PANEL ====================== -->
+            <TextBlock Text="PE SYMBOLS"
+                       Foreground="SkyBlue"
+                       FontSize="18"
+                       Margin="10"/>
+
+            <ItemsControl ItemsSource="{Binding PEOnly}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Data.Symbol}"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"/>
+                            <ContentPresenter Content="{Binding Chart}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
     </ScrollViewer>
 
 </Window>

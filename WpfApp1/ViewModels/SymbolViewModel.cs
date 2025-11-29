@@ -8,105 +8,119 @@ using System.Text;
 using System.Threading.Tasks;
 using WpfApp1.Models;
 
+
+
+
 namespace WpfApp1.ViewModels
 {
+    public partial class MainViewModel : ObservableObject
+    {
+        public ObservableCollection<SymbolViewModel> CEOnly { get; } = new();
+        public ObservableCollection<SymbolViewModel> PEOnly { get; } = new();
 
+        private readonly Random rnd = new();
 
-  
-        public partial class MainViewModel : ObservableObject
+        public MainViewModel()
         {
-            public ObservableCollection<SymbolViewModel> Symbols { get; }
-                = new ObservableCollection<SymbolViewModel>();
+            LoadOptions();
+            InitDummyPrices();
+            StartDummyFeed();
+        }
 
-            private readonly Random rnd = new();
+        private void LoadOptions()
+        {
+            var json = File.ReadAllText(@"D:\Hosts\JobStocksJson\optiondata0.json");
+            var list = System.Text.Json.JsonSerializer.Deserialize<List<OptionItem>>(json);
 
-            public MainViewModel()
+            foreach (var item in list)
             {
-                LoadOptions();
-                InitializeDummyPrices();
-                StartDummyRealtimeFeed();
-            }
-
-            private void LoadOptions()
-            {
-                string json = File.ReadAllText(@"D:\Hosts\JobStocksJson\optiondata0.json");
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<OptionItem>>(json);
-
-                foreach (var item in list)
-                {
-                    Symbols.Add(new SymbolViewModel(item.CE_Symbol));
-                    Symbols.Add(new SymbolViewModel(item.PE_Symbol));
-                }
-            }
-
-            private void InitializeDummyPrices()
-            {
-                foreach (var s in Symbols)
-                {
-                    double o = rnd.Next(100, 200);
-                    s.Data.Open = o;
-                    s.Data.High = o;
-                    s.Data.Low = o;
-                    s.Data.Ltp = o;
-                }
-            }
-
-            private void StartDummyRealtimeFeed()
-            {
-                Task.Run(() =>
-                {
-                    while (true)
-                    {
-                        foreach (var s in Symbols)
-                        {
-                            double change = (rnd.NextDouble() - 0.5) * 2;
-                            s.Data.Ltp += change;
-
-                            if (s.Data.Ltp > s.Data.High) s.Data.High = s.Data.Ltp;
-                            if (s.Data.Ltp < s.Data.Low) s.Data.Low = s.Data.Ltp;
-                        }
-
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            foreach (var s in Symbols)
-                                s.PushToChart();
-                        });
-
-                        Thread.Sleep(100); // 10 updates/sec (realtime)
-                    }
-                });
+                CEOnly.Add(new SymbolViewModel(item.CE_Symbol));
+                PEOnly.Add(new SymbolViewModel(item.PE_Symbol));
             }
         }
+
+        private void InitDummyPrices()
+        {
+            foreach (var s in CEOnly)
+            {
+                double o = rnd.Next(100, 200);
+                s.Data.Open = o; s.Data.High = o; s.Data.Low = o; s.Data.Ltp = o;
+            }
+
+            foreach (var s in PEOnly)
+            {
+                double o = rnd.Next(100, 200);
+                s.Data.Open = o; s.Data.High = o; s.Data.Low = o; s.Data.Ltp = o;
+            }
+        }
+
+        private void StartDummyFeed()
+        {
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    foreach (var s in CEOnly)
+                    {
+                        double ch = (rnd.NextDouble() - 0.5) * 2;
+                        s.Data.Ltp += ch;
+                        if (s.Data.Ltp > s.Data.High) s.Data.High = s.Data.Ltp;
+                        if (s.Data.Ltp < s.Data.Low) s.Data.Low = s.Data.Ltp;
+                    }
+
+                    foreach (var s in PEOnly)
+                    {
+                        double ch = (rnd.NextDouble() - 0.5) * 2;
+                        s.Data.Ltp += ch;
+                        if (s.Data.Ltp > s.Data.High) s.Data.High = s.Data.Ltp;
+                        if (s.Data.Ltp < s.Data.Low) s.Data.Low = s.Data.Ltp;
+                    }
+
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (var s in CEOnly) s.PushToChart();
+                        foreach (var s in PEOnly) s.PushToChart();
+                    });
+
+                    Thread.Sleep(100);
+                }
+            });
+        }
     }
+}
+
+
+
+
 
 
 
 
 namespace WpfApp1.ViewModels
+{
+    public partial class SymbolViewModel : ObservableObject
     {
-        public partial class SymbolViewModel : ObservableObject
+        public SymbolData Data { get; }
+        public AdvancedRealtimeChart Chart { get; }
+
+        public SymbolViewModel(string symbol)
         {
-            public SymbolData Data { get; }
-            public AdvancedRealtimeChart Chart { get; }
+            Data = new SymbolData { Symbol = symbol };
 
-            public SymbolViewModel(string symbol)
+            Chart = new AdvancedRealtimeChart
             {
-                Data = new SymbolData { Symbol = symbol };
+                Width = 200,
+                Height = 50,
+                Margin = new System.Windows.Thickness(6),
+                Smooth = false
+            };
+        }
 
-                Chart = new AdvancedRealtimeChart
-                {
-                    Width = 200,
-                    Height = 50,
-                    Margin = new System.Windows.Thickness(6),
-                    Smooth = false
-                };
-            }
-
-            public void PushToChart()
-            {
-                Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
-            }
+        public void PushToChart()
+        {
+            Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
         }
     }
+}
 
 
