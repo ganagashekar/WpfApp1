@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="SkiaMiniChart.cs" />
+    <Compile Remove="ViewModels\Class1.cs" />
+    <Compile Remove="ViewModels\EquitiesBuy1.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="NetMQ" Version="4.0.2.2" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />

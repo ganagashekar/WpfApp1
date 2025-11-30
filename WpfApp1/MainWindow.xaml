@@ -3,16 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:WpfApp1.ViewModels"
         xmlns:conv="clr-namespace:WpfApp1.Converters"
-        Title="CE / PE Side-by-Side with Volatility"
+        Title="CE/PE FULL ENGINE"
         Width="1800" Height="1000"
         Background="#000">
+
     <Window.Resources>
-        <conv:VolatilityToHeightConverter x:Key="VolToH" MaxVol="8" MaxHeight="60"/>
-        <conv:VolatilityToBrushConverter x:Key="VolToBrush"/>
+        <conv:VolatilityToHeightConverter x:Key="VolH" MaxVol="8" MaxHeight="60"/>
+        <conv:VolatilityToBrushConverter x:Key="VolBrush"/>
     </Window.Resources>
 
     <Window.DataContext>
-        <!-- set useDummy = false to enable ZeroMQ by default -->
         <vm:MainViewModel/>
     </Window.DataContext>
 
@@ -26,7 +26,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT: CE -->
+            <!-- CE (5 columns) -->
             <ItemsControl Grid.Column="0" ItemsSource="{Binding Strikes}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -35,18 +35,35 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="5" Width="250" Height="100" BorderBrush="#222" BorderThickness="1">
-                            <StackPanel>
-                                <TextBlock Text="{Binding CE.Data.Symbol}" Foreground="White" HorizontalAlignment="Center"/>
-                                <ContentPresenter Content="{Binding CE.Chart}" HorizontalAlignment="Center"/>
-                            </StackPanel>
+                        <Border Margin="5" Width="250" Height="100"
+            BorderBrush="#222" BorderThickness="1"
+            Background="#000000">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="15"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="{Binding CE.Data.Symbol}"
+                       Foreground="White"
+                       FontSize="11"
+                       HorizontalAlignment="Center"/>
+
+                                <Grid Grid.Row="1" Width="250" Height="80">
+                                    <ContentPresenter Content="{Binding CE.Chart}"
+                                  Width="250" Height="80"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
                         </Border>
                     </DataTemplate>
+
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- MIDDLE: Vol -->
-            <ItemsControl Grid.Column="2" ItemsSource="{Binding Strikes}">
+            <!-- VOL BAR -->
+            <ItemsControl Visibility="Hidden" Grid.Column="2" ItemsSource="{Binding Strikes}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="5"/>
@@ -61,12 +78,11 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <Border Grid.Row="0" VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="20" Background="Transparent">
-                                    <Border Height="{Binding CombinedVolatility, Converter={StaticResource VolToH}}"
+                                <Border Grid.Row="0" VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="20">
+                                    <Border Height="{Binding CombinedVolatility, Converter={StaticResource VolH}}"
+                                            Background="{Binding CombinedVolatility, Converter={StaticResource VolBrush}}"
                                             VerticalAlignment="Bottom"
-                                            Width="20"
-                                            CornerRadius="4"
-                                            Background="{Binding CombinedVolatility, Converter={StaticResource VolToBrush}}"/>
+                                            Width="20" CornerRadius="4"/>
                                 </Border>
 
                                 <TextBlock Grid.Row="1" Text="{Binding Strike}" Foreground="LightGray" FontSize="11" HorizontalAlignment="Center"/>
@@ -76,7 +92,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- RIGHT: PE -->
+            <!-- PE (5 columns) -->
             <ItemsControl Grid.Column="4" ItemsSource="{Binding Strikes}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -84,14 +100,39 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
+
                     <DataTemplate>
-                        <Border Margin="5" Width="250" Height="100" BorderBrush="#222" BorderThickness="1">
-                            <StackPanel>
-                                <TextBlock Text="{Binding PE.Data.Symbol}" Foreground="White" HorizontalAlignment="Center"/>
-                                <ContentPresenter Content="{Binding PE.Chart}" HorizontalAlignment="Center"/>
-                            </StackPanel>
+                        <Border Margin="5" Width="250" Height="100"
+BorderBrush="#222" BorderThickness="1"
+Background="#000000">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="15"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="{Binding PE.Data.Symbol}"
+           Foreground="White"
+           FontSize="11"
+           HorizontalAlignment="Center"/>
+
+                                <Grid Grid.Row="1" Width="250" Height="80">
+                                    <ContentPresenter Content="{Binding PE.Chart}"
+                      Width="250" Height="80"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
                         </Border>
                     </DataTemplate>
+                    <!--<DataTemplate>
+                        <Border Margin="5" Width="250" Height="100" BorderBrush="#222" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="{Binding PE.Data.Symbol}" Foreground="White" FontSize="11" HorizontalAlignment="Center"/>
+                                <ContentPresenter Content="{Binding PE.Chart}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>-->
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
