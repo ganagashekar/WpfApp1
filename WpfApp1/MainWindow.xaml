@@ -2,84 +2,98 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:WpfApp1.ViewModels"
-        Title="CE / PE Side-by-Side"
+        xmlns:conv="clr-namespace:WpfApp1.Converters"
+        Title="CE / PE Side-by-Side with Volatility"
         Width="1800" Height="1000"
         Background="#000">
+    <Window.Resources>
+        <conv:VolatilityToHeightConverter x:Key="VolToH" MaxVol="8" MaxHeight="60"/>
+        <conv:VolatilityToBrushConverter x:Key="VolToBrush"/>
+    </Window.Resources>
 
     <Window.DataContext>
+        <!-- set useDummy = false to enable ZeroMQ by default -->
         <vm:MainViewModel/>
     </Window.DataContext>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-
         <Grid Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="40" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="40" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- CE LEFT -->
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="CALL OPTIONS (CE)"
-                           Foreground="Orange"
-                           FontSize="20"
-                           HorizontalAlignment="Center"
-                           Margin="10"/>
+            <!-- LEFT: CE -->
+            <ItemsControl Grid.Column="0" ItemsSource="{Binding Strikes}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="5" Width="250" Height="100" BorderBrush="#222" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="{Binding CE.Data.Symbol}" Foreground="White" HorizontalAlignment="Center"/>
+                                <ContentPresenter Content="{Binding CE.Chart}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-                <ItemsControl ItemsSource="{Binding CEOnly}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="5"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+            <!-- MIDDLE: Vol -->
+            <ItemsControl Grid.Column="2" ItemsSource="{Binding Strikes}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Width="70" Height="100" Margin="5" Background="#071018" BorderBrush="#222" BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
-                                <StackPanel>
-                                    <!--<TextBlock Text="{Binding Data.Ltp}"
-                                               Foreground="White"
-                                               HorizontalAlignment="Center"/>-->
+                                <Border Grid.Row="0" VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="20" Background="Transparent">
+                                    <Border Height="{Binding CombinedVolatility, Converter={StaticResource VolToH}}"
+                                            VerticalAlignment="Bottom"
+                                            Width="20"
+                                            CornerRadius="4"
+                                            Background="{Binding CombinedVolatility, Converter={StaticResource VolToBrush}}"/>
+                                </Border>
 
-                                    <ContentPresenter Content="{Binding Chart}" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                                <TextBlock Grid.Row="1" Text="{Binding Strike}" Foreground="LightGray" FontSize="11" HorizontalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-            <!-- PE RIGHT -->
-            <StackPanel Grid.Column="2">
-                <TextBlock Text="PUT OPTIONS (PE)"
-                           Foreground="SkyBlue"
-                           FontSize="20"
-                           HorizontalAlignment="Center"
-                           Margin="10"/>
-
-                <ItemsControl ItemsSource="{Binding PEOnly}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="5"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="5" Width="250" Height="80" BorderBrush="#222" BorderThickness="1">
-                                <StackPanel>
-                                    <!--<TextBlock Text="{Binding Data.Symbol}"
-                                               Foreground="White"
-                                               HorizontalAlignment="Center"/>-->
-
-                                    <ContentPresenter Content="{Binding Chart}" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+            <!-- RIGHT: PE -->
+            <ItemsControl Grid.Column="4" ItemsSource="{Binding Strikes}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="5" Width="250" Height="100" BorderBrush="#222" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="{Binding PE.Data.Symbol}" Foreground="White" HorizontalAlignment="Center"/>
+                                <ContentPresenter Content="{Binding PE.Chart}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
         </Grid>
     </ScrollViewer>

@@ -3,7 +3,6 @@ using SkiaSharp.Views.Desktop;
 using SkiaSharp.Views.WPF;
 using System;
 using System.Collections.Generic;
-using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace WpfApp1
@@ -15,7 +14,6 @@ namespace WpfApp1
         private double _min = double.MaxValue;
         private double _max = double.MinValue;
 
-        // Glow pulse animation state
         private float _glowAlpha = 0f;
         private readonly DispatcherTimer _glowTimer;
 
@@ -25,50 +23,36 @@ namespace WpfApp1
         public SkiaMiniChart()
         {
             _glowTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(25) };
-            _glowTimer.Tick += GlowTick;
-        }
-
-        private void GlowTick(object sender, EventArgs e)
-        {
-            _glowAlpha -= 0.07f;
-            if (_glowAlpha <= 0)
+            _glowTimer.Tick += (s, e) =>
             {
-                _glowAlpha = 0;
-                _glowTimer.Stop();
-            }
-            InvalidateVisual();
+                _glowAlpha -= 0.07f;
+                if (_glowAlpha <= 0) { _glowAlpha = 0; _glowTimer.Stop(); }
+                InvalidateVisual();
+            };
         }
 
-        // Add new candle/LTP
         public void AddCandle(double open, double high, double low, double ltp)
         {
-            if (!HasOpen)
-                OpenPrice = open;
-
+            if (!HasOpen) OpenPrice = open;
             Add(ltp);
         }
 
-        // Add value
         public void Add(double v)
         {
             bool glowTrigger = false;
-
             lock (_sync)
             {
                 if (_samples.Count > 0)
                 {
                     double prev = _samples[^1];
-                    if (Math.Abs(v - prev) > Math.Abs(prev * 0.002)) // >0.2% move
-                        glowTrigger = true;
+                    if (Math.Abs(v - prev) > Math.Abs(prev * 0.002)) glowTrigger = true; // 0.2% threshold
                 }
 
                 _samples.Add(v);
-
                 if (v < _min) _min = v;
                 if (v > _max) _max = v;
             }
 
-            // glow pulse
             if (glowTrigger)
             {
                 _glowAlpha = 1f;
@@ -78,17 +62,12 @@ namespace WpfApp1
             InvalidateVisual();
         }
 
-        // Catmull-Rom → Bezier spline converter
         private SKPath CreateSplinePath(List<double> data, float w, float h, double min, double max)
         {
             var path = new SKPath();
             int n = data.Count;
-
-            if (n < 2)
-                return path;
-
+            if (n < 2) return path;
             float range = (float)(max - min);
-
             SKPoint[] pts = new SKPoint[n];
             for (int i = 0; i < n; i++)
             {
@@ -98,8 +77,6 @@ namespace WpfApp1
             }
 
             path.MoveTo(pts[0]);
-
-            // Catmull-Rom smoothing
             for (int i = 0; i < n - 1; i++)
             {
                 SKPoint p0 = (i == 0) ? pts[i] : pts[i - 1];
@@ -107,13 +84,8 @@ namespace WpfApp1
                 SKPoint p2 = pts[i + 1];
                 SKPoint p3 = (i + 2 < n) ? pts[i + 2] : p2;
 
-                SKPoint c1 = new(
-                    p1.X + (p2.X - p0.X) / 6f,
-                    p1.Y + (p2.Y - p0.Y) / 6f);
-
-                SKPoint c2 = new(
-                    p2.X - (p3.X - p1.X) / 6f,
-                    p2.Y - (p3.Y - p1.Y) / 6f);
+                SKPoint c1 = new SKPoint(p1.X + (p2.X - p0.X) / 6f, p1.Y + (p2.Y - p0.Y) / 6f);
+                SKPoint c2 = new SKPoint(p2.X - (p3.X - p1.X) / 6f, p2.Y - (p3.Y - p1.Y) / 6f);
 
                 path.CubicTo(c1, c2, p2);
             }
@@ -135,99 +107,51 @@ namespace WpfApp1
 
             lock (_sync)
             {
-                if (_samples.Count < 2)
-                    return;
-
+                if (_samples.Count < 2) return;
                 data = new List<double>(_samples);
-                min = _min;
-                max = _max;
+                min = _min; max = _max;
             }
 
-            if (min == max)
-            {
-                min -= 1;
-                max += 1;
-            }
-
+            if (min == max) { min -= 1; max += 1; }
             float range = (float)(max - min);
-
-            // Trend color
             double last = data[^1];
             bool bearish = last < OpenPrice;
-
             SKColor trendColor = bearish ? SKColors.Red : SKColors.LimeGreen;
 
-            // ========= SPLINE LINE PATH =========
             SKPath spline = CreateSplinePath(data, w, h, min, max);
 
-            // ========= GRADIENT FILL =========
-            SKColor[] gradientColors = new[]
-            {
-                trendColor.WithAlpha(90),
-                trendColor.WithAlpha(10)
-            };
-
+            // gradient fill
+            var gradientColors = new[] { trendColor.WithAlpha(90), trendColor.WithAlpha(10) };
             using (var paintFill = new SKPaint
             {
-                Shader = SKShader.CreateLinearGradient(
-                    new SKPoint(0, 0),
-                    new SKPoint(0, h),
-                    gradientColors,
-                    null,
-                    SKShaderTileMode.Clamp),
+                Shader = SKShader.CreateLinearGradient(new SKPoint(0, 0), new SKPoint(0, h), gradientColors, null, SKShaderTileMode.Clamp),
                 IsAntialias = true,
                 Style = SKPaintStyle.Fill
             })
-            using (var fillPath = new SKPath(spline)) // copy spline
+            using (var fillPath = new SKPath(spline))
             {
                 fillPath.LineTo(w, h);
                 fillPath.LineTo(0, h);
                 fillPath.Close();
-
                 canvas.DrawPath(fillPath, paintFill);
             }
 
-            // ========= PRICE SPLINE LINE =========
-            using (var paintLine = new SKPaint
-            {
-                Color = trendColor,
-                StrokeWidth = 2,
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke
-            })
+            // price line
+            using (var paintLine = new SKPaint { Color = trendColor, StrokeWidth = 2, IsAntialias = true, Style = SKPaintStyle.Stroke })
             {
                 canvas.DrawPath(spline, paintLine);
             }
 
-            // ========= OPEN PRICE DASHED LINE =========
+            // open dashed line
             float openY = h - (float)((OpenPrice - min) / range * h);
-
-            using (var paintDash = new SKPaint
-            {
-                Color = new SKColor(160, 160, 160),
-                StrokeWidth = 1,
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke,
-                PathEffect = SKPathEffect.CreateDash(new float[] { 6, 6 }, 0)
-            })
-            {
+            using (var paintDash = new SKPaint { Color = new SKColor(160, 160, 160), StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke, PathEffect = SKPathEffect.CreateDash(new float[] { 6, 6 }, 0) })
                 canvas.DrawLine(0, openY, w, openY, paintDash);
-            }
 
-            // ========= GLOW PULSE EFFECT =========
+            // glow
             if (_glowAlpha > 0)
             {
-                using (var glowPaint = new SKPaint
-                {
-                    Color = trendColor.WithAlpha((byte)(150 * _glowAlpha)),
-                    IsAntialias = true,
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 5,
-                    MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6)
-                })
-                {
+                using (var glowPaint = new SKPaint { Color = trendColor.WithAlpha((byte)(150 * _glowAlpha)), IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 5, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6) })
                     canvas.DrawPath(spline, glowPaint);
-                }
             }
         }
     }

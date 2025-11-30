@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using WpfApp1.Models;
 
 
@@ -18,78 +19,69 @@ namespace WpfApp1.ViewModels
 
     public partial class MainViewModel : ObservableObject
     {
+        public ObservableCollection<OptionStrikeViewModel> Strikes { get; } = new();
         public ObservableCollection<SymbolViewModel> CEOnly { get; } = new();
         public ObservableCollection<SymbolViewModel> PEOnly { get; } = new();
 
-        private readonly OptionTickEventArgs _engine;
-        private ZeroMqOptionFeed _zmq;
-
-        private void OnTick(object sender, OptionTickEventArgs e)
-        {
-            var vm =
-                CEOnly.FirstOrDefault(s => s.Data.Symbol == e.Symbol) ??
-                PEOnly.FirstOrDefault(s => s.Data.Symbol == e.Symbol);
-
-            if (vm == null)
-                return;
-
-            vm.Data.Open = e.Open;
-            vm.Data.High = e.High;
-            vm.Data.Low = e.Low;
-            vm.Data.Ltp = e.Ltp;
-
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                vm.PushToChart();
-            });
-        }
+        private readonly ZeroMqOptionFeed _zmq;
+        private readonly bool _useDummy;
 
         public MainViewModel()
         {
-            LoadOptions();
+            bool useDummy = true;
+            string zmqAddress = "tcp://127.0.0.1:7777";
+            _useDummy = useDummy;
+            LoadStrikes();
 
-            // 👇 CONNECT ZMQ HERE
-            _zmq = new ZeroMqOptionFeed("tcp://127.0.0.1:7777");
-            _zmq.TickReceived += OnTick;
+            // convenience lists for legacy bindings
+            foreach (var s in Strikes) { CEOnly.Add(s.CE); PEOnly.Add(s.PE); }
 
-            // Start live feed
-            _zmq.Start();
-
-
-            StartDummyTicks();
-
-            // engine
-            _engine = new OptionTickEventArgs();
-            _engine.OptionTickReceived += OnOptionTickReceived;
-        }
-
-        private void LoadOptions()
-        {
-            var json = File.ReadAllText(@"D:\Hosts\JobStocksJson\optiondata0.json");
-            var list = System.Text.Json.JsonSerializer.Deserialize<List<OptionItem>>(json);
-
-            foreach (var item in list)
+            if (!_useDummy)
             {
-                CEOnly.Add(new SymbolViewModel(item.CE_Symbol));
-                PEOnly.Add(new SymbolViewModel(item.PE_Symbol));
+                _zmq = new ZeroMqOptionFeed(zmqAddress);
+                _zmq.TickReceived += OnTick;
+                _zmq.Start();
+            }
+            else
+            {
+                StartDummyTicks();
             }
         }
 
-        private void OnOptionTickReceived(object sender, OptionTickEventArgs e)
+        private void LoadStrikes()
         {
-            var vm =
-                CEOnly.FirstOrDefault(x => x.Data.Symbol == e.Symbol)
-                ?? PEOnly.FirstOrDefault(x => x.Data.Symbol == e.Symbol);
+            if (!File.Exists(@"D:\Hosts\JobStocksJson\optiondata0.json")) return;
+            var json = File.ReadAllText(@"D:\Hosts\JobStocksJson\optiondata0.json");
+            var list = System.Text.Json.JsonSerializer.Deserialize<List<OptionItem>>(json);
 
-            if (vm == null)
-                return;
+            foreach (var it in list.Where(x=>x.stock_name.Contains("CNX")))
+            {
+                var s = new OptionStrikeViewModel(it.CE_Symbol, it.PE_Symbol, it.Strike);
+                Strikes.Add(s);
+            }
+        }
 
-            vm.Data.Open = e.Open;
-            vm.Data.High = e.High;
-            vm.Data.Low = e.Low;
-            vm.Data.Ltp = e.Ltp;
+        private void OnTick(object sender, OptionTickEventArgs e)
+        {
+            var strikeVm = Strikes.FirstOrDefault(s => s.CE.Data.Symbol == e.Symbol || s.PE.Data.Symbol == e.Symbol);
+            if (strikeVm == null) return;
 
-            System.Windows.Application.Current.Dispatcher.Invoke(() => vm.PushToChart());
+            var target = strikeVm.CE.Data.Symbol == e.Symbol ? strikeVm.CE : strikeVm.PE;
+
+            target.Data.Open = e.Open;
+            target.Data.High = e.High;
+            target.Data.Low = e.Low;
+            target.Data.Ltp = e.Ltp;
+
+            var disp = System.Windows.Application.Current?.Dispatcher;
+            if (disp != null)
+            {
+                disp.Invoke(() =>
+                {
+                    target.PushToChart();
+                    strikeVm.RecalculateCombinedVolatility();
+                });
+            }
         }
 
         private void StartDummyTicks()
@@ -97,42 +89,46 @@ namespace WpfApp1.ViewModels
             Task.Run(async () =>
             {
                 var rnd = new Random();
-
-                // give initial values
-                foreach (var vm in CEOnly.Concat(PEOnly))
+                // initial values
+                foreach (var s in Strikes)
                 {
-                    vm.Data.Open = vm.Data.Ltp = rnd.Next(100, 500);
-                    vm.Data.High = vm.Data.Open;
-                    vm.Data.Low = vm.Data.Open;
+                    double basePrice = rnd.Next(100, 500);
+                    s.CE.Initialize(basePrice);
+                    s.PE.Initialize(basePrice);
                 }
 
                 while (true)
                 {
-                    foreach (var vm in CEOnly.Concat(PEOnly))
+                    foreach (var s in Strikes)
                     {
-                        // random walk
-                        double ch = (rnd.NextDouble() - 0.5) * 4;
-                        vm.Data.Ltp += ch;
+                        double ch1 = (rnd.NextDouble() - 0.5) * 2;
+                        s.CE.Data.Ltp += ch1;
+                        if (s.CE.Data.Ltp > s.CE.Data.High) s.CE.Data.High = s.CE.Data.Ltp;
+                        if (s.CE.Data.Ltp < s.CE.Data.Low) s.CE.Data.Low = s.CE.Data.Ltp;
 
-                        if (vm.Data.Ltp > vm.Data.High) vm.Data.High = vm.Data.Ltp;
-                        if (vm.Data.Ltp < vm.Data.Low) vm.Data.Low = vm.Data.Ltp;
+                        double ch2 = (rnd.NextDouble() - 0.5) * 2;
+                        s.PE.Data.Ltp += ch2;
+                        if (s.PE.Data.Ltp > s.PE.Data.High) s.PE.Data.High = s.PE.Data.Ltp;
+                        if (s.PE.Data.Ltp < s.PE.Data.Low) s.PE.Data.Low = s.PE.Data.Ltp;
 
-                        // Call the SAME handler used by real ZMQ
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.Invoke(() =>
                         {
-                            vm.PushToChart();
+                            s.CE.PushToChart();
+                            s.PE.PushToChart();
+                            s.RecalculateCombinedVolatility();
                         });
                     }
 
-                    await Task.Delay(50); // update 20 times per second
+                    await Task.Delay(80);
                 }
             });
         }
-
     }
-
-
 }
+
+
+
+
 
 
 
@@ -147,28 +143,51 @@ namespace WpfApp1.ViewModels
     public partial class SymbolViewModel : ObservableObject
     {
         public SymbolData Data { get; }
-        //public AdvancedRealtimeChart Chart { get; }
         public SkiaMiniChart Chart { get; }
 
-        public SymbolViewModel(string symbol)
+        private readonly Queue<double> _recent = new();
+        private readonly object _recentLock = new();
+        private readonly int _maxHistory = 50;
+
+        public SymbolViewModel(string symbol, int history = 50)
         {
             Data = new SymbolData { Symbol = symbol };
-
-            Chart = new SkiaMiniChart
-            {
-                Width = 250,
-                Height = 60
-            };
-
-
-            //Chart = new AdvancedRealtimeChart
-            //{
-            //    Width = 250,
-            //    Height = 60
-            //};
+            Chart = new SkiaMiniChart { Width = 250, Height = 80 };
+            _maxHistory = history;
         }
 
-        public void PushToChart() => Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
+        public void PushToChart()
+        {
+            Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
+            AddRecent(Data.Ltp);
+        }
+
+        private void AddRecent(double ltp)
+        {
+            lock (_recentLock)
+            {
+                _recent.Enqueue(ltp);
+                while (_recent.Count > _maxHistory) _recent.Dequeue();
+            }
+        }
+
+        public double[] GetRecentLtp(int take)
+        {
+            lock (_recentLock)
+            {
+                return _recent.Reverse().Take(take).Reverse().ToArray();
+            }
+        }
+
+        // convenience for dummy init
+        public void Initialize(double price)
+        {
+            Data.Open = Data.High = Data.Low = Data.Ltp = price;
+            AddRecent(price);
+        }
+    
+
+        //public void PushToChart() => Chart.AddCandle(Data.Open, Data.High, Data.Low, Data.Ltp);
 
 
         //public void PushToChart()
