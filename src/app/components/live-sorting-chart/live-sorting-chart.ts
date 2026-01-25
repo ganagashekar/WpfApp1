@@ -11,6 +11,7 @@ import {
   ChartComponent,
   ILoadedEventArgs,
   IAxisRangeCalculatedEventArgs,
+  IPointRenderEventArgs,
   CategoryService,
   ColumnSeriesService,
   TooltipService,
@@ -39,7 +40,7 @@ interface DataPoint {
 export class LiveSortingChartComponent implements OnDestroy {
 
   @ViewChild('chart', { static: true })
-  public chart: ChartComponent |any ;
+  public chart: ChartComponent | any ;
 
   // =========================
   // DATA (PRE-SORTED ONCE)
@@ -66,7 +67,7 @@ export class LiveSortingChartComponent implements OnDestroy {
       { x: 'Iran', y: 46.53 }, { x: 'Canada', y: 59.52 },
       { x: 'Finland', y: 45.67 }, { x: 'Brazil', y: 67.84 }
     ]
-  ].map(set => set.sort((a, b) => b.y - a.y)); // ✅ sort ONCE
+  ].map(set => set.sort((a, b) => b.y - a.y)); // ✅ sort once
 
   public data: DataPoint[] = this.datasets[0];
 
@@ -74,7 +75,7 @@ export class LiveSortingChartComponent implements OnDestroy {
   private intervalId: number | null = null;
 
   // =========================
-  // CHART CONFIG (STATIC)
+  // CHART CONFIG
   // =========================
   public title = 'Nitrogen Fertilizer Usage';
 
@@ -92,34 +93,32 @@ export class LiveSortingChartComponent implements OnDestroy {
   };
 
   public legendSettings = { visible: false };
+  public tooltip = { enable: true };
 
   public marker = {
     dataLabel: {
       visible: true,
-      position: 'Top',
-      font: { color: '#ffffff' },
-      angle: -90
+      position: 'Top'
     }
   };
-
-  public tooltip = { enable: true };
 
   constructor(private zone: NgZone) {}
 
   // =========================
-  // LOW-CPU LIVE UPDATE
+  // LIVE UPDATE (LOW CPU)
   // =========================
   public load(_: ILoadedEventArgs): void {
     this.clearInterval();
 
-    // ✅ Run OUTSIDE Angular (biggest CPU saver)
     this.zone.runOutsideAngular(() => {
       this.intervalId = window.setInterval(() => {
+
+        if (document.hidden) return; // optional CPU saver
+
         const next = this.datasets[this.index % this.datasets.length];
 
         if (this.chart?.series?.length) {
-          // ✅ No new array, no re-sort
-          this.chart.series[0].setData(next, 800);
+          this.chart.series[0].setData(next); // ✅ no animation
         }
 
         this.index++;
@@ -127,7 +126,18 @@ export class LiveSortingChartComponent implements OnDestroy {
     });
   }
 
-  
+  // =========================
+  // COLOR PER COLUMN (OPTION-1)
+  // =========================
+  public pointRender(args: IPointRenderEventArgs): void {
+    const COLORS = [
+      '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336',
+      '#00BCD4', '#8BC34A', '#FFC107', '#3F51B5', '#E91E63'
+    ];
+
+    args.fill = COLORS[args.point.index % COLORS.length];
+  }
+
   public axisRangeCalculated(args: IAxisRangeCalculatedEventArgs): void {
     if (args.axis.name === 'primaryYAxis') {
       args.interval = args.maximum > 120 ? 30 : 20;
