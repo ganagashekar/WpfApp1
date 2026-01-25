@@ -64,3 +64,23 @@ export class LiveChartComponent {
     }, 500);
   }
 }
+
+
+export interface SymbolRowVM {
+  symbol: string;
+  ltp: number;
+  breakoutScore: number;
+  focusScore: number;
+  momentum: number;
+  changePct: number;
+  volume: number;
+}
+
+export interface MarketSnapshot {
+  timestamp: string;
+
+  suddenMovers: SymbolRowVM[];
+  strongTrends: SymbolRowVM[];
+  bestFocus: SymbolRowVM[];
+  earlyBursts: SymbolRowVM[];
+}

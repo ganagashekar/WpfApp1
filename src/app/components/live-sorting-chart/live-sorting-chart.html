@@ -1,4 +1,4 @@
-<ejs-chart
+<!-- <ejs-chart
   #chart
   [title]="title"
   [primaryXAxis]="primaryXAxis"
@@ -6,6 +6,42 @@
   [legendSettings]="legendSettings"
   [tooltip]="tooltip"
   (load)="load($event)"
+  (pointRender)="pointRender($event)"
+>
+
+  <e-series-collection>
+    <e-series
+      type="Column"
+      [dataSource]="data"
+      xName="x"
+      yName="y"
+      [marker]="marker"
+      [animation]="{ enable: true, duration: 400 }"
+    
+    >
+    </e-series>
+  </e-series-collection>
+
+</ejs-chart> -->
+
+<!-- VALUE + NAME ON BAR -->
+<!-- <ng-template #valueNameTemplate let-data>
+  <div style="text-align:center; font-size:11px; font-weight:600;">
+    <div>{{ data.point.y }}</div>
+    <div>{{ data.point.x }}</div>
+  </div>
+</ng-template> -->
+
+  <!-- [enableSideBySidePlacement]="false" -->
+
+
+  <ejs-chart
+  #chart
+  [title]="title"
+  [primaryXAxis]="primaryXAxis"
+  [primaryYAxis]="primaryYAxis"
+  [legendSettings]="legendSettings"
+  [tooltip]="tooltip"
   (pointRender)="pointRender($event)"
   (axisRangeCalculated)="axisRangeCalculated($event)"
 >
