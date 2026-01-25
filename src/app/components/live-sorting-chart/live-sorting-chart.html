@@ -1,0 +1,20 @@
+<ejs-chart
+  #chart
+  [primaryXAxis]="primaryXAxis"
+  [primaryYAxis]="primaryYAxis"
+  [title]="title"
+  [legendSettings]="legendSettings"
+  [tooltip]="tooltip"
+  (load)="load($event)"
+  (axisRangeCalculated)="axisRangeCalculated($event)"
+>
+  <e-series-collection>
+    <e-series
+      type="Column"
+      [dataSource]="data"
+      xName="x"
+      yName="y"
+      [marker]="marker">
+    </e-series>
+  </e-series-collection>
+</ejs-chart>
