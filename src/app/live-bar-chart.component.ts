@@ -3,8 +3,8 @@ import {
   ViewChild,
   ChangeDetectionStrategy,
   OnDestroy,
-  NgZone,
-  Input
+  Input,
+  NgZone
 } from '@angular/core';
 
 import {
@@ -57,28 +57,16 @@ import { MarketSnapshot } from './model/market-snapshot.model';
 })
 export class LiveBarChartComponent implements OnDestroy {
 
-  // ======================
-  // CHART INSTANCE
-  // ======================
   @ViewChild('chart', { static: true })
   chart!: ChartComponent | any;
 
-  // ======================
-  // INPUTS
-  // ======================
   @Input() title = '';
   @Input() colorPalette: string[] = [];
   @Input() mode!: 'sudden' | 'strong' | 'best';
 
-  // ======================
-  // INTERNAL STATE
-  // ======================
   private sub?: Subscription;
   private chartLoaded = false;
 
-  // ======================
-  // AXES
-  // ======================
   public xAxis = {
     valueType: 'Category',
     labelRotation: -90,
@@ -96,20 +84,17 @@ export class LiveBarChartComponent implements OnDestroy {
   ) {}
 
   // ======================
-  // LOAD (SYNCFUSION-SAFE)
+  // LOAD (SYNCFUSION SAFE)
   // ======================
-  onLoad(args: ILoadedEventArgs): void {
+  onLoad(_: ILoadedEventArgs): void {
     if (this.chartLoaded) return;
     this.chartLoaded = true;
 
-    this.sub = this.liveData.raw$.subscribe(raw => {
-      if (!raw || document.hidden) return;
-
-      const snapshot = this.parseSnapshot(raw);
-      if (!snapshot) return;
-
-      this.updateChart(snapshot);
-    });
+    this.sub = this.liveData.snapshot$
+      .subscribe(snapshot => {
+        if (!snapshot || document.hidden) return;
+        this.updateChart(snapshot);
+      });
   }
 
   // ======================
@@ -117,7 +102,6 @@ export class LiveBarChartComponent implements OnDestroy {
   // ======================
   private updateChart(snapshot: MarketSnapshot): void {
     if (!this.chart?.series?.length || this.chart.isDestroyed) return;
-    if (!this.mode) return;
 
     let data: { x: string; y: number }[];
 
@@ -147,50 +131,20 @@ export class LiveBarChartComponent implements OnDestroy {
         return;
     }
 
-    // 🔥 SORT BEFORE SETDATA (LIKE OFFICIAL SAMPLE)
     const sorted = sort(data, ['y'], true);
 
     this.zone.runOutsideAngular(() => {
-      // ❌ NO refresh()
       this.chart.series[0].setData(sorted, 500);
     });
   }
 
-  // ======================
-  // BAR COLORING
-  // ======================
   pointRender(args: any): void {
     if (!this.colorPalette.length) return;
     args.fill =
       this.colorPalette[args.point.index % this.colorPalette.length];
   }
 
-  // ======================
-  // CLEANUP
-  // ======================
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
-  }
-
-  // ======================
-  // SAFE PARSER
-  // ======================
-  private parseSnapshot(raw: any): MarketSnapshot | null {
-    const sudden = raw.suddenMovers ?? raw.SuddenMovers;
-    const strong = raw.strongTrends ?? raw.StrongTrends;
-    const best   = raw.bestFocus   ?? raw.BestFocus;
-
-    if (!Array.isArray(sudden) ||
-        !Array.isArray(strong) ||
-        !Array.isArray(best)) {
-      return null;
-    }
-
-    return {
-      timestamp: raw.timestamp ?? '',
-      suddenMovers: sudden,
-      strongTrends: strong,
-      bestFocus: best
-    };
   }
 }

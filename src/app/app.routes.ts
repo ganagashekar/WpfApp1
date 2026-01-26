@@ -4,6 +4,7 @@ import { LiveSortingChartComponent } from './components/live-sorting-chart/live-
 import { MarketDashboardComponent } from './components/market-dashboard.component/market-dashboard.component';
 
 
+
 export const routes: Routes = [
   { path: '', redirectTo: 'live', pathMatch: 'full' },
   { path: 'live', component: LiveChartComponent },
