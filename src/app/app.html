@@ -18,6 +18,13 @@
       <a
   routerLink="/live-sorting"
   routerLinkActive="active"
+> 
+  <span class="icon">📈</span>
+  <span class="text" *ngIf="!collapsed()">Live Sorting Chart</span>
+</a>
+<a
+  routerLink="/market-dashboard"
+  routerLinkActive="active"
 >
   <span class="icon">📈</span>
   <span class="text" *ngIf="!collapsed()">Live Sorting Chart</span>

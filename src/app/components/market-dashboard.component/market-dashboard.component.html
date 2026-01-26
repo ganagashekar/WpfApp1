@@ -1,0 +1,28 @@
+<div style="margin-bottom:12px">
+  <button *ngIf="!connected" (click)="connect()">🔌 Connect</button>
+  <button *ngIf="connected" (click)="disconnect()">❌ Disconnect</button>
+</div>
+
+<app-live-bar-chart
+  title="🚀 Sudden Movers"
+  mode="sudden"
+  [colorPalette]="COLORS_100">
+</app-live-bar-chart>
+
+<app-live-bar-chart
+  title="🔥 Strong Trends"
+  mode="strong"
+  [colorPalette]="COLORS_100">
+</app-live-bar-chart>
+
+<app-live-bar-chart
+  title="⭐ Best Focus"
+  mode="best"
+  [colorPalette]="COLORS_100">
+</app-live-bar-chart>
+
+<app-live-pie-chart
+  title="📊 Sector Distribution"
+  type="Doughnut"
+  [topN]="8">
+</app-live-pie-chart>

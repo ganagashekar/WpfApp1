@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import {
   RouterOutlet,
   RouterLink,
@@ -8,14 +9,17 @@ import {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [
+    CommonModule,        // 🔥 THIS IS THE FIX
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
   protected readonly title = signal('live-dashboard');
-
-  // 🔥 Sidebar collapsed state
   protected readonly collapsed = signal(false);
 
   toggleSidebar() {

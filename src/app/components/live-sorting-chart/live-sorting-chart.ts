@@ -21,7 +21,8 @@ import {
 
 import { Subscription } from 'rxjs';
 import { LiveDataService } from '../../services/live-data.service';
-import { MarketSnapshot } from '../../live-chart.component';
+import { MarketSnapshot } from '../../model/market-snapshot.model';
+
 
 interface DataPoint {
   x: string;
@@ -91,12 +92,12 @@ export class LiveSortingChartComponent
   ngOnInit(): void {
     this.liveData.connect();
 
-    this.sub = this.liveData.snapshot$
-      .subscribe(snapshot => {
-        if (!snapshot || document.hidden) return;
+    // this.sub = this.liveData.snapshot$
+    //   .subscribe(snapshot => {
+    //     if (!snapshot || document.hidden) return;
 
-        this.updateChart(snapshot);
-      });
+    //     this.updateChart(snapshot);
+    //   });
   }
 
   // =========================
