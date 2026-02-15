@@ -3,6 +3,19 @@
   <button *ngIf="connected" (click)="disconnect()">❌ Disconnect</button>
 </div>
 
+
+<app-live-bar-chart
+  title="🚀Top-ChangeNSE"
+  mode="topchangeNSE"
+  [colorPalette]="COLORS_100">
+</app-live-bar-chart>
+
+<app-live-bar-chart
+  title="🚀Top-ChangeBSE"
+  mode="topchangeBSE"
+  [colorPalette]="COLORS_100">
+</app-live-bar-chart>
+
 <app-live-bar-chart
   title="🚀 Sudden Movers"
   mode="sudden"
@@ -26,4 +39,16 @@
   type="Doughnut"
   [topN]="8">
 </app-live-pie-chart>
+<app-live-strike-depth-column>
+
+</app-live-strike-depth-column>
+<div >
+  <app-cepe-minute-aggregate-bars></app-cepe-minute-aggregate-bars>
 </div>
+
+
+</div>
+
+
+
+<!-- <app-live-strike-depth-column></app-live-strike-depth-column> -->

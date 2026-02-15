@@ -1,9 +1,11 @@
 export interface SymbolRowVM {
-  symbol: string;
-  breakoutScore: number;
-  focusScore: number;
-  change:number;
-  ltp:number
+  Symbol: string;
+  BreakoutScore: number;
+  FocusScore: number;
+  Change:number;
+  LTP:number;
+  StockName: string;
+  NS:string;
 }
 
 export interface MarketSnapshot {
@@ -11,4 +13,12 @@ export interface MarketSnapshot {
   suddenMovers: SymbolRowVM[];
   strongTrends: SymbolRowVM[];
   bestFocus: SymbolRowVM[];
+  topChangersNSE: SymbolRowVM[];
+  topChangersBSE: SymbolRowVM[];
+}
+
+export interface StrikeDepth {
+  strike: string;   // e.g. "ATM-100", "45200"
+  CE: number;       // Call count / OI / volume
+  PE: number;       // Put count / OI / volume
 }

@@ -109,8 +109,8 @@ export class LiveSortingChartComponent
     // Example: Sudden Movers → chart
     const points: DataPoint[] =
       snapshot.suddenMovers.map(x => ({
-        x: x.symbol,
-        y: x.breakoutScore
+        x: x.Symbol,
+        y: x.BreakoutScore
       }));
 
     // 🚀 Fastest Syncfusion update
