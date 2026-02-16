@@ -22,3 +22,15 @@ export interface StrikeDepth {
   CE: number;       // Call count / OI / volume
   PE: number;       // Put count / OI / volume
 }
+
+export interface CePeTick {
+  ts: number;
+
+  // old combined format (still supported)
+  CE?: number;
+  PE?: number;
+
+  // new separate format
+  side?: 'CE' | 'PE';
+  value?: number;
+}

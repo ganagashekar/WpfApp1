@@ -1,6 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { MarketSnapshot, StrikeDepth } from '../model/market-snapshot.model';
+import { CePeTick, MarketSnapshot, StrikeDepth } from '../model/market-snapshot.model';
 
 @Injectable({ providedIn: 'root' })
 export class LiveDataService {
@@ -36,7 +36,7 @@ cepeMinutePoint$ = this.cepeMinutePointSubject.asObservable();
 // CE / PE LIVE TICKS
 // =======================
 private cepeLiveSubject =
-  new BehaviorSubject<{ CE: number; PE: number; ts: number } | null>(null);
+  new BehaviorSubject<CePeTick | null>(null);
 
 cepeLive$ = this.cepeLiveSubject.asObservable();
 
@@ -103,7 +103,19 @@ cepeLive$ = this.cepeLiveSubject.asObservable();
     try {
       const msg = JSON.parse(e.data);
 
+      // 🔍 debug: see the full WS packet
+      console.log('RAW WS MSG:', msg);
+
       switch (msg.Event) {
+
+        case 'CEPELive':
+          console.log('CEPELive Data:', msg.Data);   // 👈 should show full object
+          this.cepeLiveSubject.next(msg.Data);
+          break;
+
+        case 'CEPEMinutePoint':
+          this.cepeMinutePointSubject.next(msg.Data);
+          break;
 
         case 'Depth':
           this.handleStrikeDepth(msg.Data);
@@ -117,26 +129,16 @@ cepeLive$ = this.cepeLiveSubject.asObservable();
           this.sectorSubject.next(msg.Data);
           break;
 
-          case 'CEPEMinutePoint':
-  this.zone.run(() => {
-    this.cepeMinutePointSubject.next(msg.Data);
-  });
-  break;
-
-  case 'CEPELive':
-  this.zone.run(() => {
-    this.cepeLiveSubject.next(msg.Data);
-  });
-  break;
-
-
         default:
-          console.warn('Unknown WS event', msg.event);
+          console.warn('Unknown WS event', msg.Event);
       }
 
-    } catch {}
+    } catch (err) {
+      console.error('WS parse error:', err);
+    }
   });
 };
+
 
 
 
