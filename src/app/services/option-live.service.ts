@@ -29,6 +29,12 @@ export class OptionLiveService {
     new BehaviorSubject<StrikeDepth[] | null>(null);
   strikeDepth$ = this.strikeDepthSubject.asObservable();
 
+  // =======================
+  // CLIENT-SIDE STRIKE DEPTH STATE
+  // =======================
+  private depthMap = new Map<number, { CE: number; PE: number }>();
+  private currentMinuteKey = '';
+
   constructor(private zone: NgZone) {}
 
   // =======================
@@ -51,23 +57,30 @@ export class OptionLiveService {
 
           switch (msg.Event) {
 
-            case 'CEPELive':
-              // expected: { ts, side, value, strike, spot, score? }
-              this.cepeLiveSubject.next(msg.Data as CePeTick);
-              break;
+            case 'CEPELive': {
+              // expected: { ts, side, value, strike, chg?, spot? }
+              const tick = msg.Data as CePeTick;
+              this.cepeLiveSubject.next(tick);
 
-            case 'CEPEMinutePoint':
+              // 👉 build strike depth from SAME data
+              this.onCePeTickForStrikeDepth(tick);
+              break;
+            }
+
+            case 'CEPEMinutePoint': {
               // expected: { label, CE, PE }
               this.cepeMinutePointSubject.next(msg.Data);
               break;
+            }
 
             case 'Depth':
-            case 'StrikeDepth':
+            case 'StrikeDepth': {
+              // optional backend-provided depth (still supported)
               this.handleStrikeDepth(msg.Data);
               break;
+            }
 
             default:
-              // ignore other events
               break;
           }
 
@@ -101,7 +114,7 @@ export class OptionLiveService {
   }
 
   // =======================
-  // STRIKE DEPTH PARSER
+  // STRIKE DEPTH PARSER (backend optional)
   // =======================
   private handleStrikeDepth(data: any) {
     const depth = this.parseStrikeDepth(data);
@@ -140,5 +153,53 @@ export class OptionLiveService {
         CE: Number(d.CE),
         PE: Number(d.PE)
       }));
+  }
+
+  // =======================
+  // CLIENT-SIDE STRIKE DEPTH BUILDER (1 MIN, ALL STRIKES)
+  // =======================
+  private onCePeTickForStrikeDepth(tick: CePeTick) {
+    if (!tick || tick.strike == null || !tick.ts) return;
+
+    const side = tick.side as 'CE' | 'PE';
+    if (side !== 'CE' && side !== 'PE') return;
+
+    // ✅ use SERVER TIME from payload.ts
+    const dt = new Date(tick.ts);
+    const minuteKey = `${dt.getUTCHours()}:${dt.getUTCMinutes()}`; // use UTC or local consistently
+
+    // init minute
+    if (!this.currentMinuteKey) {
+      this.currentMinuteKey = minuteKey;
+    }
+
+    // 🔁 minute rollover → reset depth
+    if (minuteKey !== this.currentMinuteKey) {
+      this.depthMap.clear();
+      this.currentMinuteKey = minuteKey;
+    }
+
+    let row = this.depthMap.get(tick.strike);
+    if (!row) {
+      row = { CE: 0, PE: 0 };
+      this.depthMap.set(tick.strike, row);
+    }
+
+    row[side]++;   // 🔢 count only
+
+    // emit LIVE snapshot (current minute, all strikes so far)
+    this.emitStrikeDepthSnapshot();
+  }
+
+  private emitStrikeDepthSnapshot() {
+    const depth: StrikeDepth[] = Array.from(this.depthMap.entries())
+      .map(([strike, v]) => ({
+        strike: String(strike),
+        CE: v.CE,
+        PE: v.PE
+      }))
+      .sort((a, b) => Number(a.strike) - Number(b.strike));
+
+    this.strikeDepthSubject.next(depth);
   }
 }

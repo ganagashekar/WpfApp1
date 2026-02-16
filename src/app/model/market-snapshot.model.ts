@@ -33,7 +33,13 @@ export interface CePeTick {
   // new separate format
   side?: 'CE' | 'PE';
   value?: number;
+
+  // coming from your relay
+  strike?: number;
+  chg?: number;
+  spot?: number;
 }
+
 
 
 export interface StrikeRow {
