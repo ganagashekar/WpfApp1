@@ -104,7 +104,7 @@ cepeLive$ = this.cepeLiveSubject.asObservable();
       const msg = JSON.parse(e.data);
 
       // 🔍 debug: see the full WS packet
-      console.log('RAW WS MSG:', msg);
+      // console.log('RAW WS MSG:', msg);
 
       switch (msg.Event) {
 

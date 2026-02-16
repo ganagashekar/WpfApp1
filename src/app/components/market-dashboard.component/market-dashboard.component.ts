@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common';
 import { LiveDataService } from '../../services/live-data.service';
 import { LiveBarChartComponent } from '../../live-bar-chart.component';
 import { LivePieChartComponent } from '../../live-pie-chart.component';
-import { LiveStrikeDepthColumnComponent } from '../../live-strike-depth-column.component';
-import { CePeMinuteAggregateBarsComponent } from '../../cepe-minute-history-bars';
+// import { LiveStrikeDepthColumnComponent } from '../../live-strike-depth-column.component';
+// import { CePeMinuteAggregateBarsComponent } from '../../cepe-minute-history-bars';
 
 
 
@@ -18,8 +18,8 @@ import { CePeMinuteAggregateBarsComponent } from '../../cepe-minute-history-bars
     CommonModule,
     LiveBarChartComponent,
     LivePieChartComponent,
-    LiveStrikeDepthColumnComponent,
-    CePeMinuteAggregateBarsComponent 
+    // LiveStrikeDepthColumnComponent,
+    // CePeMinuteAggregateBarsComponent 
   ]
 })
 export class MarketDashboardComponent {

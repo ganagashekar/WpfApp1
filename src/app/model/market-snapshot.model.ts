@@ -34,3 +34,10 @@ export interface CePeTick {
   side?: 'CE' | 'PE';
   value?: number;
 }
+
+
+export interface StrikeRow {
+  strike: string;
+  CE: number;
+  PE: number;
+}
