@@ -40,6 +40,13 @@ export interface CePeTick {
   spot?: number;
 }
 
+export interface MinuteRow {
+  label: string;
+  CE: number;
+  PE: number;
+  spot?: number; 
+  chg?:number;  // 👈 add this
+}
 
 
 export interface StrikeRow {

@@ -64,10 +64,13 @@ export class LiveStrikeDepthColumnComponent implements OnDestroy {
   private sub?: Subscription;
   public data: StrikeRow[] = [];
 
+  private currentMinuteKey = '';
+
   public xAxis = {
     valueType: 'Category',
     labelRotation: -90,
-    majorGridLines: { width: 0 }
+    majorGridLines: { width: 0 },
+    labelIntersectAction: 'None'
   };
 
   public yAxis = {
@@ -87,106 +90,96 @@ export class LiveStrikeDepthColumnComponent implements OnDestroy {
   onLoad(_: any): void {
     if (this.sub) return;
 
-    this.sub = this.optionLive.strikeDepth$
-      .pipe(auditTime(1000))   // ⏱️ 1 FPS UI updates
-      .subscribe(depth => {
-        if (!depth || this.chart.isDestroyed) return;
-        this.updateChart(depth);
+    // 1️⃣ Reset depth on CE/PE minute rollover (server time)
+    this.sub = this.optionLive.cepeLive$
+      .subscribe(tick => {
+        if (!tick?.ts) return;
+
+        const dt = new Date(Number(tick.ts));
+        const minuteKey = `${dt.getUTCHours()}:${dt.getUTCMinutes()}`;
+
+        if (!this.currentMinuteKey) {
+          this.currentMinuteKey = minuteKey;
+          return;
+        }
+
+        if (minuteKey !== this.currentMinuteKey) {
+          this.currentMinuteKey = minuteKey;
+          this.resetDepthChart();
+        }
       });
+
+    // 2️⃣ Depth updates (1 FPS UI)
+    this.sub.add(
+      this.optionLive.strikeDepth$
+        .pipe(auditTime(1000))
+        .subscribe(depth => {
+          if (!depth || this.chart.isDestroyed) return;
+          this.updateChart(depth);
+        })
+    );
   }
 
-  // private updateChart(depth: StrikeDepth[]): void {
-  //   if (!this.chart?.series?.length || this.chart.isDestroyed) return;
+  private resetDepthChart() {
+    this.data = [];
 
-  //   // First load
-  //   if (this.data.length === 0) {
-  //     this.data = depth.map(d => ({
-  //       strike: d.strike,
-  //       CE: d.CE,
-  //       PE: d.PE
-  //     }));
-
-  //     this.zone.runOutsideAngular(() => {
-  //       this.chart.series[0].dataSource = this.data;
-  //       this.chart.series[1].dataSource = this.data;
-  //       this.chart.refresh();   // ✅ fast initial draw
-  //     });
-  //     return;
-  //   }
-
-  //   // Incremental update (no rebuild)
-  //   const map = new Map(this.data.map(x => [x.strike, x]));
-  //   let changed = false;
-
-  //   for (const d of depth) {
-  //     const row = map.get(d.strike);
-  //     if (!row) continue;
-
-  //     if (row.CE !== d.CE) { row.CE = d.CE; changed = true; }
-  //     if (row.PE !== d.PE) { row.PE = d.PE; changed = true; }
-  //   }
-
-  //   if (!changed) return;
-
-  //   // Throttled redraw (already 1/sec by auditTime)
-  //   this.zone.runOutsideAngular(() => {
-  //     this.chart.refresh();   // ✅ lighter than dataBind()
-  //   });
-  // }
-
-  private updateChart(depth: StrikeDepth[]): void {
-  if (!this.chart?.series?.length || this.chart.isDestroyed) return;
-
-  // First load
-  if (this.data.length === 0) {
-    this.data = depth.map(d => ({
-      strike: d.strike,
-      CE: d.CE,
-      PE: d.PE
-    }));
+    if (!this.chart || this.chart.isDestroyed) return;
 
     this.zone.runOutsideAngular(() => {
       this.chart.series[0].dataSource = this.data;
       this.chart.series[1].dataSource = this.data;
-      this.chart.refresh();
+      this.chart.refresh();   // fast clear
     });
-    return;
   }
 
-  const map = new Map(this.data.map(x => [x.strike, x]));
-  let changed = false;
+  private updateChart(depth: StrikeDepth[]): void {
+    if (!this.chart?.series?.length || this.chart.isDestroyed) return;
 
-  // ➕ Add or update strikes
-  for (const d of depth) {
-    let row = map.get(d.strike);
+    // First load
+    if (this.data.length === 0) {
+      this.data = depth.map(d => ({
+        strike: d.strike,
+        CE: d.CE,
+        PE: d.PE
+      }));
 
-    if (!row) {
-      row = { strike: d.strike, CE: d.CE, PE: d.PE };
-      this.data.push(row);        // ✅ add new strike
-      map.set(d.strike, row);
-      changed = true;
-    } else {
-      if (row.CE !== d.CE) { row.CE = d.CE; changed = true; }
-      if (row.PE !== d.PE) { row.PE = d.PE; changed = true; }
+      this.data.sort((a, b) => Number(a.strike) - Number(b.strike));
+
+      this.zone.runOutsideAngular(() => {
+        this.chart.series[0].dataSource = this.data;
+        this.chart.series[1].dataSource = this.data;
+        this.chart.refresh();
+      });
+      return;
     }
+
+    const map = new Map(this.data.map(x => [x.strike, x]));
+    let changed = false;
+
+    // ➕ Add or update strikes
+    for (const d of depth) {
+      let row = map.get(d.strike);
+
+      if (!row) {
+        row = { strike: d.strike, CE: d.CE, PE: d.PE };
+        this.data.push(row);
+        map.set(d.strike, row);
+        changed = true;
+      } else {
+        if (row.CE !== d.CE) { row.CE = d.CE; changed = true; }
+        if (row.PE !== d.PE) { row.PE = d.PE; changed = true; }
+      }
+    }
+
+    if (!changed) return;
+
+    // Keep strikes ordered
+    this.data.sort((a, b) => Number(a.strike) - Number(b.strike));
+
+    this.zone.runOutsideAngular(() => {
+      this.chart.refresh();   // lightweight redraw
+    });
   }
-
-  // ❌ Optional: remove strikes that no longer exist (if backend drops them)
-  // const depthSet = new Set(depth.map(d => d.strike));
-  // const before = this.data.length;
-  // this.data = this.data.filter(x => depthSet.has(x.strike));
-  // if (this.data.length !== before) changed = true;
-
-  if (!changed) return;
-
-  // Keep strikes sorted (important for category axis)
-  this.data.sort((a, b) => Number(a.strike) - Number(b.strike));
-
-  this.zone.runOutsideAngular(() => {
-    this.chart.refresh();   // ✅ lightweight redraw
-  });
-}
-
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();

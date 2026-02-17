@@ -16,12 +16,9 @@ import {
 
 import { Subscription } from 'rxjs';
 import { OptionLiveService } from './services/option-live.service';
+import { MinuteRow } from './model/market-snapshot.model';
 
-interface MinuteRow {
-  label: string;
-  CE: number;
-  PE: number;
-}
+
 
 @Component({
   selector: 'app-cepe-minute-aggregate-bars',
